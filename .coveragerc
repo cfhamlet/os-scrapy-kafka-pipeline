@@ -1,0 +1,10 @@
+[run]
+parallel = true
+branch = true
+source = os_scrapy_kafka_pipeline
+
+[paths]
+source =
+    os_scrapy_kafka_pipeline
+    .tox/*/lib/python*/site-packages/os_scrapy_kafka_pipeline
+    .tox/*/site-packages/os_scrapy_kafka_pipeline

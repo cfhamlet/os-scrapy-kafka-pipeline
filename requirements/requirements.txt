@@ -1,0 +1,3 @@
+os-scrapy>=0.0.4
+kafka-python>=2.0.0
+expiringdict

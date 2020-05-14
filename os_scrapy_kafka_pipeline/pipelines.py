@@ -30,7 +30,9 @@ class KafkaPipeline(object):
         settings = self.crawler.settings
         try:
             self.producer = AutoProducer(
-                bootstrap_servers=settings.get(KAFKA_PRODUCER_BROKERS, None),
+                bootstrap_servers=settings.getlist(KAFKA_PRODUCER_BROKERS)
+                if KAFKA_PRODUCER_BROKERS in settings
+                else None,
                 configs=settings.get(KAFKA_PRODUCER_CONFIGS, None),
                 topic=settings.get(KAFKA_PRODUCER_TOPIC, None),
                 kafka_loglevel=loglevel(
@@ -41,7 +43,9 @@ class KafkaPipeline(object):
             raise NotConfigured(f"init producer {e}")
         self.logger = logging.getLogger(self.__class__.__name__)
         crawler.signals.connect(self.spider_closed, signals.spider_closed)
-        self.exporter = TextDictKeyPythonItemExporter(binary=False)
+        self.exporter = TextDictKeyPythonItemExporter(
+            binary=False, ensure_base64=crawler.settings.getbool("ENSURE_BASE64", False)
+        )
         self.encoder = ScrapyJSNONBase64Encoder()
 
     def kafka_args(

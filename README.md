@@ -13,7 +13,7 @@ Features:
 * support config default kafka brokers and topic in the settings.py file
 * support [kafka-python](https://github.com/dpkp/kafka-python) [producer](https://kafka-python.readthedocs.io/en/master/apidoc/KafkaProducer.html) init args
 * support dynamic connect and send to other kafka cluster and topic using item meta
-* item will send to kafka as JSON format, bytes will encode to base64 if can not utf-8 encode 
+* item will send to kafka as JSON format, bytes can be encoded to base64 string if it can not be utf-8 encoded
 
 ## Install
 
@@ -78,6 +78,15 @@ scrapy crawl example
 
     ```
     KAFKA_PRODUCER_CLOSE_TIMEOUT = 10
+    ```
+
+* ensure base64
+
+    the bytes type of the item mumber will be encoded by utf-8, if encode fail, the pipeline can use base64 encode the bytes when you set:
+
+
+    ```
+    ENSURE_BASE64 = True
     ```
 
 ### Dynamic Kafka Connection with item.meta

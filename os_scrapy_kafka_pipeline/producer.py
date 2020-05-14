@@ -3,7 +3,6 @@ import threading
 from typing import Dict, List, Optional
 
 from expiringdict import ExpiringDict
-
 from kafka.producer import KafkaProducer
 
 DEFAULT_FLAG = "__DEFAULT__"

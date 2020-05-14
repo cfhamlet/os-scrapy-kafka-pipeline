@@ -13,7 +13,7 @@ Features:
 * support config default kafka brokers and topic in the settings.py file
 * support [kafka-python](https://github.com/dpkp/kafka-python) [producer](https://kafka-python.readthedocs.io/en/master/apidoc/KafkaProducer.html) init args
 * support dynamic connect and send to other kafka cluster and topic using item meta
-* item will send to kafka as JSON format, bytes will encode to base64
+* item will send to kafka as JSON format, bytes will encode to base64 if can not utf-8 encode 
 
 ## Install
 
@@ -30,7 +30,7 @@ scrapy crawl example
 ## Usage
 
 
-### Configures
+### Settings
 
 * enable pipeline in the project settings.py file
 

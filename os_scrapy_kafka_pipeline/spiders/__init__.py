@@ -23,8 +23,9 @@ class ExampleSpider(scrapy.Spider):
     def parse(self, response):
         yield ExampleItem(
             url=response.url,
+            request_headers=response.request.headers,
+            response_headers=response.headers,
             status=response.status,
-            headers=response.headers,
             meta=response.meta,
             body=response.body,
         )

@@ -30,7 +30,7 @@ scrapy crawl example
 ## Usage
 
 
-### Configures
+### Settings
 
 * enable pipeline in the project settings.py file
 

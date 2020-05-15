@@ -77,10 +77,6 @@ class KafkaPipeline(object):
 
     def process_item(self, item, spider):
         s = time.time()
-        self._process_item(item, spider)
-        self.logger.debug("process cost %.5f" % (time.time() - s))
-
-    def _process_item(self, item, spider):
         try:
             (
                 topic,
@@ -102,7 +98,12 @@ class KafkaPipeline(object):
             )
         except Exception as e:
             show_me = max_str(str(item), 200)
-            self.logger.error(f"process item {e} {show_me}")
+            self.logger.error(f"process item cost:{time.time()-s:.5f}, {e}, {show_me}")
+        else:
+            self.logger.debug(
+                f"process item cost:{time.time()-s:.5f} size:{len(value)}"
+            )
+
         return item
 
     def spider_closed(self, spider):

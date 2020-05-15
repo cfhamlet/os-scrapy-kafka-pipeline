@@ -6,6 +6,7 @@
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
 import logging
+import time
 from typing import List, Optional, Tuple
 
 from scrapy import signals
@@ -75,6 +76,11 @@ class KafkaPipeline(object):
         return to_bytes(self.encoder.encode(result))
 
     def process_item(self, item, spider):
+        s = time.time()
+        self._process_item(item, spider)
+        self.logger.debug("process cost %.5f" % (time.time() - s))
+
+    def _process_item(self, item, spider):
         try:
             (
                 topic,

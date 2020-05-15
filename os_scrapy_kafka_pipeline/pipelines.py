@@ -12,6 +12,7 @@ from typing import List, Optional, Tuple
 from scrapy import signals
 from scrapy.exceptions import NotConfigured
 from scrapy.utils.python import to_bytes
+from twisted.internet import threads
 
 from .exporter import TextDictKeyPythonItemExporter
 from .producer import AutoProducer
@@ -76,7 +77,7 @@ class KafkaPipeline(object):
         return to_bytes(self.encoder.encode(result))
 
     def process_item(self, item, spider):
-        s = time.time()
+        time_start = time.time()
         try:
             (
                 topic,
@@ -87,24 +88,37 @@ class KafkaPipeline(object):
                 bootstrap_servers,
             ) = self.kafka_args(item)
             value = self.kafka_value(item)
-            self.producer.send(
-                topic=topic,
-                value=value,
-                key=key,
-                headers=headers,
-                partition=partition,
-                timestamp_ms=timestamp_ms,
-                bootstrap_servers=bootstrap_servers,
-            )
         except Exception as e:
+            time_encode = time.time()
             show_me = max_str(str(item), 200)
-            self.logger.error(f"process item cost:{time.time()-s:.5f}, {e}, {show_me}")
-        else:
-            self.logger.debug(
-                f"process item cost:{time.time()-s:.5f} size:{len(value)}"
+            self.logger.error(
+                f"process item encode_cost:{time_encode-time_start:.5f}, {e}, {show_me}"
             )
+            return item
 
-        return item
+        time_encode = time.time()
+
+        def send():
+            logf = self.logger.debug
+            msg = f"size:{len(value)}"
+            try:
+                self.producer.send(
+                    topic=topic,
+                    value=value,
+                    key=key,
+                    headers=headers,
+                    partition=partition,
+                    timestamp_ms=timestamp_ms,
+                    bootstrap_servers=bootstrap_servers,
+                )
+            except Exception as e:
+                msg = f"{msg} {e}"
+            logf(
+                f"encode_cost:{time_encode-time_start:.5f} send_cost:{time.time()-time_encode:.5f} {msg}"
+            )
+            return item
+
+        return threads.deferToThread(send)
 
     def spider_closed(self, spider):
         if self.producer is not None:

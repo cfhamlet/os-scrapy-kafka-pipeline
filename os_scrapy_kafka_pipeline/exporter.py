@@ -10,8 +10,8 @@ class TextDictKeyPythonItemExporter(PythonItemExporter):
         self.ensure_base64 = ensure_base64
 
     def _serialize_dict(self, value):
-        k, v = next(super(TextDictKeyPythonItemExporter, self)._serialize_dict(value))
-        yield to_unicode(k), v
+        for k, v in super(TextDictKeyPythonItemExporter, self)._serialize_dict(value):
+            yield to_unicode(k), v
 
     def _serialize_value(self, value):
         try:

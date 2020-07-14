@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 def read(*filenames, **kwargs):
     import io
-    from os.path import join, dirname
+    from os.path import dirname, join
 
     encoding = kwargs.get("encoding", "utf-8")
     sep = kwargs.get("sep", "\n")

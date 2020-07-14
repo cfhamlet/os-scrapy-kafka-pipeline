@@ -24,6 +24,7 @@ KAFKA_PRODUCER_CONFIGS = "KAFKA_PRODUCER_CONFIGS"
 KAFKA_PRODUCER_TOPIC = "KAFKA_PRODUCER_TOPIC"
 KAFKA_PRODUCER_LOGLEVEL = "KAFKA_PRODUCER_LOGLEVEL"
 KAFKA_PRODUCER_CLOSE_TIMEOUT = "KAFKA_PRODUCER_CLOSE_TIMEOUT"
+KAFKA_VALUE_ENSURE_BASE64 = "KAFKA_VALUE_ENSURE_BASE64"
 
 
 class KafkaPipeline(object):
@@ -46,7 +47,8 @@ class KafkaPipeline(object):
         self.logger = logging.getLogger(self.__class__.__name__)
         crawler.signals.connect(self.spider_closed, signals.spider_closed)
         self.exporter = TextDictKeyPythonItemExporter(
-            binary=False, ensure_base64=crawler.settings.getbool("ENSURE_BASE64", False)
+            binary=False,
+            ensure_base64=crawler.settings.getbool(KAFKA_VALUE_ENSURE_BASE64, False),
         )
         self.encoder = ScrapyJSNONBase64Encoder()
 
@@ -61,8 +63,8 @@ class KafkaPipeline(object):
         Optional[List[str]],
     ]:
         topic = key = headers = partition = timestamp_ms = bootstrap_servers = None
-        if hasattr(item, "meta") and isinstance(item.meta, dict):
-            meta = item.meta
+        if "meta" in item and isinstance(item["meta"], dict):
+            meta = item["meta"]
             topic = meta.get("kafka.topic", None)
             key = meta.get("kafka.key", None)
             partition = meta.get("kafka.partition", None)

@@ -21,11 +21,18 @@ class ExampleSpider(scrapy.Spider):
     start_urls = ["http://example.com/"]
 
     def parse(self, response):
+        request = response.request
         yield ExampleItem(
-            url=response.url,
-            request_headers=response.request.headers,
-            response_headers=response.headers,
-            status=response.status,
+            request={
+                "url": request.url,
+                "method": request.method,
+                "headers": request.headers,
+                "body": request.body,
+            },
+            response={
+                "status": response.status,
+                "headers": response.headers,
+                "body": response.body,
+            },
             meta=response.meta,
-            body=response.body,
         )

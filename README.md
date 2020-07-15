@@ -86,12 +86,12 @@ scrapy crawl example
 
 
     ```
-    ENSURE_BASE64 = True
+    KAFKA_VALUE_ENSURE_BASE64 = True
     ```
 
 ### Dynamic Kafka Connection with item.meta
 
-* you can set topic, key, partition using item.meta
+* you can set topic, key, partition using item["meta"]
 * the item must has meta mumber which type is dict
 * options:
 

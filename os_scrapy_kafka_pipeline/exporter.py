@@ -10,11 +10,13 @@ class TextDictKeyPythonItemExporter(PythonItemExporter):
         self.ensure_base64 = ensure_base64
 
     def _serialize_dict(self, value):
-        for k, v in super(TextDictKeyPythonItemExporter, self)._serialize_dict(value):
-            yield to_unicode(k), v
+        for key, val in value.items():
+            yield to_unicode(key), self._serialize_value(val)
 
     def _serialize_value(self, value):
         try:
+            if isinstance(value, dict):
+                return dict(self._serialize_dict(value))
             value = super(TextDictKeyPythonItemExporter, self)._serialize_value(value)
         except UnicodeDecodeError as e:
             if self.ensure_base64 and isinstance(value, bytes):

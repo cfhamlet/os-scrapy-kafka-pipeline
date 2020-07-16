@@ -116,7 +116,7 @@ class KafkaPipeline(object):
             except Exception as e:
                 msg = f"{msg} {e}"
             logf(
-                f"encode_cost:{time_encode-time_start:.5f} send_cost:{time.time()-time_encode:.5f} {msg}"
+                f"topic:{topic} encode_cost:{time_encode-time_start:.5f} send_cost:{time.time()-time_encode:.5f} {msg}"
             )
             return item
 

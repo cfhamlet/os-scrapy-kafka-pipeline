@@ -101,8 +101,20 @@ class KafkaPipeline(object):
         time_encode = time.time()
 
         def send():
-            logf = self.logger.debug
-            msg = f"size:{len(value)}"
+            extra = f"encode_cost:{time_encode-time_start:.5f} size:{len(value)}"
+
+            def on_succ(metadata):
+                self.logger.debug(
+                    f"send topic:{metadata.topic} partition:{metadata.partition} "
+                    f"offset:{metadata.offset} send_cost:{time.time()-time_encode:.5f} {extra}"
+                )
+
+            def on_fail(excp):
+                self.logger.error(
+                    f"send topic:{topic} send_cost:{time.time()-time_encode:.5f} {extra}",
+                    exc_info=excp,
+                )
+
             try:
                 self.producer.send(
                     topic=topic,
@@ -112,12 +124,12 @@ class KafkaPipeline(object):
                     partition=partition,
                     timestamp_ms=timestamp_ms,
                     bootstrap_servers=bootstrap_servers,
-                )
+                ).add_callback(on_succ).add_errback(on_fail)
             except Exception as e:
-                msg = f"{msg} {e}"
-            logf(
-                f"encode_cost:{time_encode-time_start:.5f} send_cost:{time.time()-time_encode:.5f} {msg}"
-            )
+                self.logger.error(
+                    f"send topic:{topic} send_cost:{time.time()-time_encode:.5f} {extra} {e}"
+                )
+
             return item
 
         return threads.deferToThread(send)

@@ -82,7 +82,7 @@ scrapy crawl example
 
 * ensure base64
 
-    the bytes type of the item mumber will be encoded by utf-8, if encode fail, the pipeline can use base64 encode the bytes when you set:
+    the bytes type of the item mumber will be decoded by utf-8, if decode fail, the pipeline will use base64 decode the bytes when you set:
 
 
     ```

@@ -17,7 +17,7 @@ from twisted.internet import threads
 from .exporter import TextDictKeyPythonItemExporter
 from .producer import AutoProducer
 from .serialize import ScrapyJSNONBase64Encoder
-from .utils import loglevel, max_str
+from .utils import loglevel
 
 KAFKA_PRODUCER_BROKERS = "KAFKA_PRODUCER_BROKERS"
 KAFKA_PRODUCER_CONFIGS = "KAFKA_PRODUCER_CONFIGS"
@@ -25,6 +25,33 @@ KAFKA_PRODUCER_TOPIC = "KAFKA_PRODUCER_TOPIC"
 KAFKA_PRODUCER_LOGLEVEL = "KAFKA_PRODUCER_LOGLEVEL"
 KAFKA_PRODUCER_CLOSE_TIMEOUT = "KAFKA_PRODUCER_CLOSE_TIMEOUT"
 KAFKA_VALUE_ENSURE_BASE64 = "KAFKA_VALUE_ENSURE_BASE64"
+
+
+class KafKaRecord(object):
+    __slots__ = (
+        "topic",
+        "value",
+        "key",
+        "headers",
+        "partition",
+        "timestamp_ms",
+        "bootstrap_servers",
+        "meta",
+        "ts",
+        "dmsg",
+    )
+
+    def __init__(self):
+        self.topic: Optional[str] = None
+        self.value: Optional[bytes] = None
+        self.key: Optional[bytes] = None
+        self.headers: Optional[List[Tuple[str, bytes]]] = None
+        self.partition: Optional[int] = None
+        self.timestamp_ms: Optional[int] = None
+        self.bootstrap_servers: Optional[List[str]] = None
+        self.meta: Optional[dict] = None
+        self.ts: int = 0
+        self.dmsg: dict = {}
 
 
 class KafkaPipeline(object):
@@ -50,87 +77,87 @@ class KafkaPipeline(object):
         )
         self.encoder = ScrapyJSNONBase64Encoder()
 
-    def kafka_args(
-        self, item
-    ) -> Tuple[
-        Optional[str],  # topic
-        Optional[bytes],  # key
-        Optional[List[Tuple[str, bytes]]],  # headers
-        Optional[int],  # partition
-        Optional[int],  # timestamp_ms
-        Optional[List[str]],
-    ]:
-        topic = key = headers = partition = timestamp_ms = bootstrap_servers = None
+    def kafka_record(self, item) -> KafKaRecord:
+        record = KafKaRecord()
         if "meta" in item and isinstance(item["meta"], dict):
             meta = item["meta"]
-            topic = meta.get("kafka.topic", None)
-            key = meta.get("kafka.key", None)
-            partition = meta.get("kafka.partition", None)
+            record.meta = meta
+            record.topic = meta.get("kafka.topic", None)
+            record.key = meta.get("kafka.key", None)
+            record.partition = meta.get("kafka.partition", None)
             bootstrap_servers = meta.get("kafka.brokers", None)
             if isinstance(bootstrap_servers, str):
-                bootstrap_servers = bootstrap_servers.split(",")
+                record.bootstrap_servers = bootstrap_servers.split(",")
 
-        return topic, key, headers, partition, timestamp_ms, bootstrap_servers
+        return record
 
-    def kafka_value(self, item) -> Optional[bytes]:
-        result = self.exporter.export_item(item)
-        return to_bytes(self.encoder.encode(result))
+    def kafka_value(self, item, record) -> Optional[bytes]:
+        record.ts = time.time()
+        try:
+            result = self.exporter.export_item(item)
+            record.value = to_bytes(self.encoder.encode(result))
+            record.dmsg["size"] = len(record.value)
+        except Exception as e:
+            record.dmsg["err"] = e
+            raise e
+        finally:
+            record.dmsg["encode_cost"] = time.time() - record.ts
+
+    def log(self, record):
+        logf = self.logger.debug
+        err = record.dmsg.pop("err", None)
+        msg = " ".join(
+            [
+                f"{k}:{v:.5f}" if k.endswith("_cost") else f"{k}:{v}"
+                for k, v in record.dmsg.items()
+            ]
+        )
+        msg = f"topic:{record.topic} partition:{record.partition} {msg}"
+        if err:
+            logf = self.logger.error
+            msg = f"{msg} err:{err}"
+        logf(msg)
+
+    def send(self, item, record):
+        record.ts = time.time()
+
+        def on_succ(metadata):
+            record.topic = metadata.topic
+            record.partition = metadata.partition
+            record.dmsg["offset"] = metadata.offset
+            record.dmsg["send_cost"] = time.time() - record.ts
+            self.log(record)
+
+        def on_fail(e):
+            record.dmsg["err"] = e
+            record.dmsg["send_cost"] = time.time() - record.ts
+            self.log(record)
+
+        try:
+            self.producer.send(
+                topic=record.topic,
+                value=record.value,
+                key=record.key,
+                headers=record.headers,
+                partition=record.partition,
+                timestamp_ms=record.timestamp_ms,
+                bootstrap_servers=record.bootstrap_servers,
+            ).add_callback(on_succ).add_errback(on_fail)
+        except Exception as e:
+            record.dmsg["err"] = e
+            record.dmsg["send_cost"] = time.time() - record.ts
+            self.log(record)
+
+        return item
 
     def process_item(self, item, spider):
-        time_start = time.time()
+        record = self.kafka_record(item)
         try:
-            (
-                topic,
-                key,
-                headers,
-                partition,
-                timestamp_ms,
-                bootstrap_servers,
-            ) = self.kafka_args(item)
-            value = self.kafka_value(item)
-        except Exception as e:
-            time_encode = time.time()
-            show_me = max_str(str(item), 200)
-            self.logger.error(
-                f"process item encode_cost:{time_encode-time_start:.5f}, {e}, {show_me}"
-            )
+            self.kafka_value(item, record)
+        except:
+            self.log(record)
             return item
-
-        time_encode = time.time()
-
-        def send():
-            extra = f"encode_cost:{time_encode-time_start:.5f} size:{len(value)}"
-
-            def on_succ(metadata):
-                self.logger.debug(
-                    f"send topic:{metadata.topic} partition:{metadata.partition} "
-                    f"offset:{metadata.offset} send_cost:{time.time()-time_encode:.5f} {extra}"
-                )
-
-            def on_fail(excp):
-                self.logger.error(
-                    f"send topic:{topic} send_cost:{time.time()-time_encode:.5f} {extra}",
-                    exc_info=excp,
-                )
-
-            try:
-                self.producer.send(
-                    topic=topic,
-                    value=value,
-                    key=key,
-                    headers=headers,
-                    partition=partition,
-                    timestamp_ms=timestamp_ms,
-                    bootstrap_servers=bootstrap_servers,
-                ).add_callback(on_succ).add_errback(on_fail)
-            except Exception as e:
-                self.logger.error(
-                    f"send topic:{topic} send_cost:{time.time()-time_encode:.5f} {extra} {e}"
-                )
-
-            return item
-
-        return threads.deferToThread(send)
+        return threads.deferToThread(self.send, item, record)
 
     def spider_closed(self, spider):
         if self.producer is not None:

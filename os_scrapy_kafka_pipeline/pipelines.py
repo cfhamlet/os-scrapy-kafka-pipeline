@@ -7,6 +7,7 @@
 
 import logging
 import time
+from functools import partial
 from typing import List, Optional, Tuple
 
 from scrapy import signals
@@ -103,8 +104,7 @@ class KafkaPipeline(object):
         finally:
             record.dmsg["encode_cost"] = time.time() - record.ts
 
-    def log(self, item, record):
-        logf = self.logger.debug
+    def _log_msg(self, item, record):
         err = record.dmsg.pop("err", None)
         msg = " ".join(
             [
@@ -114,25 +114,31 @@ class KafkaPipeline(object):
         )
         msg = f"topic:{record.topic} partition:{record.partition} {msg}"
         if err:
-            logf = self.logger.error
+            self.logger.error
             msg = f"{msg} err:{err}"
-        logf(msg)
+            record.dmsg["err"] = err
+        return msg
+
+    def log(self, item, record):
+        logf = self.logger.debug
+        if "err" in record.dmsg and record.dmsg["err"]:
+            logf = self.logger.error
+        logf(self._log_msg(item, record))
+
+    def on_send_succ(self, item, record, metadata):
+        record.topic = metadata.topic
+        record.partition = metadata.partition
+        record.dmsg["offset"] = metadata.offset
+        record.dmsg["send_cost"] = time.time() - record.ts
+        self.log(item, record)
+
+    def on_send_fail(self, item, record, e):
+        record.dmsg["err"] = e
+        record.dmsg["send_cost"] = time.time() - record.ts
+        self.log(item, record)
 
     def send(self, item, record):
         record.ts = time.time()
-
-        def on_succ(metadata):
-            record.topic = metadata.topic
-            record.partition = metadata.partition
-            record.dmsg["offset"] = metadata.offset
-            record.dmsg["send_cost"] = time.time() - record.ts
-            self.log(item, record)
-
-        def on_fail(e):
-            record.dmsg["err"] = e
-            record.dmsg["send_cost"] = time.time() - record.ts
-            self.log(item, record)
-
         try:
             self.producer.send(
                 topic=record.topic,
@@ -142,7 +148,9 @@ class KafkaPipeline(object):
                 partition=record.partition,
                 timestamp_ms=record.timestamp_ms,
                 bootstrap_servers=record.bootstrap_servers,
-            ).add_callback(on_succ).add_errback(on_fail)
+            ).add_callback(partial(self.on_send_succ, item, record)).add_errback(
+                partial(self.on_send_fail, item, record)
+            )
         except Exception as e:
             record.dmsg["err"] = e
             record.dmsg["send_cost"] = time.time() - record.ts

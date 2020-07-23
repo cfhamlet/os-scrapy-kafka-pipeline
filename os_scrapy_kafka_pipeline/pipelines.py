@@ -103,7 +103,7 @@ class KafkaPipeline(object):
         finally:
             record.dmsg["encode_cost"] = time.time() - record.ts
 
-    def log(self, record):
+    def log(self, item, record):
         logf = self.logger.debug
         err = record.dmsg.pop("err", None)
         msg = " ".join(
@@ -126,12 +126,12 @@ class KafkaPipeline(object):
             record.partition = metadata.partition
             record.dmsg["offset"] = metadata.offset
             record.dmsg["send_cost"] = time.time() - record.ts
-            self.log(record)
+            self.log(item, record)
 
         def on_fail(e):
             record.dmsg["err"] = e
             record.dmsg["send_cost"] = time.time() - record.ts
-            self.log(record)
+            self.log(item, record)
 
         try:
             self.producer.send(
@@ -146,7 +146,7 @@ class KafkaPipeline(object):
         except Exception as e:
             record.dmsg["err"] = e
             record.dmsg["send_cost"] = time.time() - record.ts
-            self.log(record)
+            self.log(item, record)
 
         return item
 
@@ -155,7 +155,7 @@ class KafkaPipeline(object):
         try:
             self.kafka_value(item, record)
         except:
-            self.log(record)
+            self.log(item, record)
             return item
         return threads.deferToThread(self.send, item, record)
 

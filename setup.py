@@ -16,7 +16,7 @@ def read(*filenames, **kwargs):
 
 setup(
     name="os_scrapy_kafka_pipeline",
-    version="0.0.7",
+    version="0.0.8",
     packages=find_packages(),
     include_package_data=True,
     license="MIT License",

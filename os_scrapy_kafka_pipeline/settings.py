@@ -69,13 +69,11 @@ ITEM_PIPELINES = {
 }
 
 # Default kafka brokers
-KAFKA_PRODUCER_BROKERS = (
-    "rsync.kafka001.offline.sjs.ted:9092,rsync.kafka002.offline.sjs.ted:9092"
-)
+KAFKA_PRODUCER_BROKERS = ["localhost:9092"]
 # See https://kafka-python.readthedocs.io/en/master/apidoc/KafkaProducer.html
 KAFKA_PRODUCER_CONFIGS = {}
 # Default producer topic
-KAFKA_PRODUCER_TOPIC = "databus_default_topic"
+KAFKA_PRODUCER_TOPIC = "topic01"
 # Kafka producer loglevel
 KAFKA_PRODUCER_LOGLEVEL = "WARNING"
 # Kafka producer close timeout

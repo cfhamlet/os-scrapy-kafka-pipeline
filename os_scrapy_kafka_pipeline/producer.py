@@ -55,7 +55,7 @@ class AutoProducer(object):
         self.fail_pass = ExpiringDict(max_len=10000, max_age_seconds=60)
 
         bs = configs.pop("bootstrap_servers", None)
-        if bootstrap_servers is None:
+        if not bootstrap_servers:
             bootstrap_servers = bs
 
         if bootstrap_servers:

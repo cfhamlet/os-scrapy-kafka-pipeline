@@ -139,6 +139,8 @@ class KafkaPipeline(object):
 
     def send(self, item, record):
         record.ts = time.time()
+        if record.topic is None:
+            record.topic = self.producer.topic
         try:
             self.producer.send(
                 topic=record.topic,
@@ -155,7 +157,6 @@ class KafkaPipeline(object):
             record.dmsg["err"] = e
             record.dmsg["send_cost"] = time.time() - record.ts
             self.log(item, record)
-
         return item
 
     def process_item(self, item, spider):

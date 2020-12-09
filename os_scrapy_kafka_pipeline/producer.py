@@ -3,6 +3,8 @@ import threading
 from typing import Dict, List, Optional
 
 from expiringdict import ExpiringDict
+from kafka.errors import UnknownTopicOrPartitionError
+from kafka.future import Future
 from kafka.producer import KafkaProducer
 
 DEFAULT_FLAG = "__DEFAULT__"
@@ -53,6 +55,7 @@ class AutoProducer(object):
         self.configs: dict = configs
         self.producers: Dict[str, KafkaProducer] = {}
         self.fail_pass = ExpiringDict(max_len=10000, max_age_seconds=60)
+        self.not_exist_topics = ExpiringDict(max_len=10000, max_age_seconds=60)
 
         bs = configs.pop("bootstrap_servers", None)
         if not bootstrap_servers:
@@ -85,6 +88,18 @@ class AutoProducer(object):
         topic = topic if topic is not None else self.topic
         if topic is None:
             raise Exception("no topic")
+
+        if (
+            len(producer._metadata._partitions) > 0
+            and topic not in producer._metadata._partitions
+        ):
+            if topic in self.not_exist_topics:
+                try:
+                    producer._wait_on_metadata(topic, 1)
+                except Exception:
+                    return Future().failure(UnknownTopicOrPartitionError())
+            else:
+                self.not_exist_topics[topic] = 1
 
         return producer.send(
             topic,

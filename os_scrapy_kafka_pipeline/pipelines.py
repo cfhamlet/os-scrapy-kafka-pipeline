@@ -28,6 +28,10 @@ KAFKA_PRODUCER_CLOSE_TIMEOUT = "KAFKA_PRODUCER_CLOSE_TIMEOUT"
 KAFKA_VALUE_ENSURE_BASE64 = "KAFKA_VALUE_ENSURE_BASE64"
 
 
+def round5(n):
+    return round(n, 5)
+
+
 class KafKaRecord(object):
     __slots__ = (
         "topic",
@@ -102,7 +106,7 @@ class KafkaPipeline(object):
             record.dmsg["err"] = e
             raise e
         finally:
-            record.dmsg["encode_cost"] = time.time() - record.ts
+            record.dmsg["encode_cost"] = round5(time.time() - record.ts)
 
     def _log_msg(self, item, record):
         err = record.dmsg.pop("err", None)
@@ -129,12 +133,12 @@ class KafkaPipeline(object):
         record.topic = metadata.topic
         record.partition = metadata.partition
         record.dmsg["offset"] = metadata.offset
-        record.dmsg["send_cost"] = time.time() - record.ts
+        record.dmsg["send_cost"] = round5(time.time() - record.ts)
         self.log(item, record)
 
     def on_send_fail(self, item, record, e):
         record.dmsg["err"] = e
-        record.dmsg["send_cost"] = time.time() - record.ts
+        record.dmsg["send_cost"] = round5(time.time() - record.ts)
         self.log(item, record)
 
     def send(self, item, record):
@@ -155,7 +159,7 @@ class KafkaPipeline(object):
             )
         except Exception as e:
             record.dmsg["err"] = e
-            record.dmsg["send_cost"] = time.time() - record.ts
+            record.dmsg["send_cost"] = round5(time.time() - record.ts)
             self.log(item, record)
         return item
 

@@ -97,7 +97,7 @@ class AutoProducer(object):
                 try:
                     producer._wait_on_metadata(topic, 1)
                 except Exception:
-                    return Future().failure(UnknownTopicOrPartitionError())
+                    return Future().failure(UnknownTopicOrPartitionError(topic))
             else:
                 self.not_exist_topics[topic] = 1
 

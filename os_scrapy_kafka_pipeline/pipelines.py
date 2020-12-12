@@ -81,6 +81,8 @@ class KafkaPipeline(object):
             ensure_base64=settings.getbool(KAFKA_VALUE_ENSURE_BASE64, False),
         )
         self.encoder = ScrapyJSNONBase64Encoder()
+        self.field_filter = set(settings.getlist("KAFKA_EXPORT_FILTER", []))
+        self.logger.debug(f"KAFKA_EXPORT_FILTER: {self.field_filter}")
 
     def kafka_record(self, item) -> KafKaRecord:
         record = KafKaRecord()
@@ -99,7 +101,9 @@ class KafkaPipeline(object):
     def kafka_value(self, item, record) -> Optional[bytes]:
         record.ts = time.time()
         try:
-            result = self.exporter.export_item(item)
+            result = self.exporter.export_item(
+                item, pre="", field_filter=self.field_filter
+            )
             record.value = to_bytes(self.encoder.encode(result))
             record.dmsg["size"] = len(record.value)
         except Exception as e:

@@ -32,7 +32,7 @@ scrapy crawl example
 
 ### Settings
 
-* enable pipeline in the project settings.py file
+* Enable pipeline in the project settings.py file
 
     ```
     ITEM_PIPELINES = {
@@ -40,7 +40,7 @@ scrapy crawl example
     }
     ```
 
-* config default kafka brokers
+* Config default kafka brokers
 
     ```
     KAFKA_PRODUCER_BROKERS = ["broker01.kafka:9092", "broker02.kafka:9092"]
@@ -50,7 +50,7 @@ scrapy crawl example
     - pipeline will not be enabled when this settings can not to start kafka connection
     - it will raise exception when no brokers configured
 
-* config default kafka [producer](https://kafka-python.readthedocs.io/en/master/apidoc/KafkaProducer.html)
+* Config default kafka [producer](https://kafka-python.readthedocs.io/en/master/apidoc/KafkaProducer.html)
 
     ```
     KAFKA_PRODUCER_CONFIGS = {"client_id": "id01", "retries": 1}
@@ -59,7 +59,7 @@ scrapy crawl example
     - this is global config, the dynamic connections will use this configs
     - the ``bootstrap_servers`` will not work when ``KAFKA_PRRDUCER_BROKERS`` already configured
 
-* config defult topic
+* Config defult topic
 
     ```
     KAFKA_PRODUCER_TOPIC = "topic01"
@@ -68,25 +68,33 @@ scrapy crawl example
     - the config in the item.meta will override this config
     - it will raise exception when no topic configured
 
-* config kafka-python loglevel (default "WARNING")
+* Config kafka-python loglevel (default "WARNING")
 
     ```
     KAFKA_PRODUCER_LOGLEVEL = "DEBUG"
     ```
 
-* config kafka producer close timeout (default: None)
+* Config kafka producer close timeout (default: None)
 
     ```
     KAFKA_PRODUCER_CLOSE_TIMEOUT = 10
     ```
 
-* ensure base64
+* Ensure base64
 
-    the bytes type of the item mumber will be decoded by utf-8, if decode fail, the pipeline will use base64 to encode the bytes when you set:
+    The bytes type of the item mumber will be decoded by utf-8, if decode fail, the pipeline will use base64 to encode the bytes when you set:
 
 
     ```
     KAFKA_VALUE_ENSURE_BASE64 = True
+    ```
+
+* Filter field
+
+    You can filter item fields which will not export and send to kafka
+
+    ```
+    KAFKA_EXPORT_FILTER = ["filtered_field"]
     ```
 
 ### Dynamic Kafka Connection with item.meta

@@ -44,7 +44,7 @@ class TextDictKeyPythonItemExporter(PythonItemExporter):
             value = super(TextDictKeyPythonItemExporter, self)._serialize_value(value)
         except UnicodeDecodeError as e:
             if self.ensure_base64 and isinstance(value, bytes):
-                value = to_unicode(base64.encodebytes(value))
+                value = to_unicode(base64.b64encode(value))
             else:
                 raise e
         return value

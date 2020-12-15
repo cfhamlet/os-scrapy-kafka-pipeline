@@ -7,5 +7,5 @@ from scrapy.utils.serialize import ScrapyJSONEncoder
 class ScrapyJSNONBase64Encoder(ScrapyJSONEncoder):
     def default(self, o):
         if isinstance(o, bytes):
-            return to_unicode(base64.encodebytes(o))
+            return to_unicode(base64.b64encode(o))
         return super(ScrapyJSNONBase64Encoder, self).default(o)

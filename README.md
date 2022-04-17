@@ -100,7 +100,7 @@ scrapy crawl example
 ### Dynamic Kafka Connection with item.meta
 
 * you can set topic, key, partition using item["meta"]
-* the item must has meta mumber which type is dict
+* the item must has meta field which type is dict
 * options:
 
     ```

@@ -3,7 +3,7 @@ import base64
 from itemadapter import ItemAdapter, is_item
 from scrapy.exporters import PythonItemExporter
 from scrapy.item import _BaseItem
-from scrapy.utils.python import to_unicode
+from scrapy.utils.python import to_unicode, to_bytes
 
 
 def pre_join(pre, key):

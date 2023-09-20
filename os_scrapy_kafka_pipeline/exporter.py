@@ -1,8 +1,14 @@
 import base64
 
+from scrapy import version_info
+
+if version_info >= (2, 6, 0):
+    from scrapy.item import Item
+else:
+    from scrapy.item import _BaseItem as Item
+
 from itemadapter import ItemAdapter, is_item
 from scrapy.exporters import PythonItemExporter
-from scrapy.item import _BaseItem
 from scrapy.utils.python import to_unicode
 
 
@@ -37,7 +43,7 @@ class TextDictKeyPythonItemExporter(PythonItemExporter):
                 return dict(
                     self._serialize_dict(value, pre=pre, field_filter=field_filter)
                 )
-            elif isinstance(value, _BaseItem):
+            elif isinstance(value, Item):
                 return self.export_item(value, pre=pre, field_filter=field_filter)
             elif is_item(value):
                 return dict(self._serialize_item(value))
